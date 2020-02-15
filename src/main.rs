@@ -34,14 +34,14 @@ struct Abc {
 
 struct BTree {
     m: usize,
-    root: Box<Node>,
+    root: Node,
 }
 
 impl BTree {
     fn new(m: usize) -> BTree {
         BTree {
             m: m,
-            root: Box::new(Node::new())
+            root: Node::new()
         }
     }
 
@@ -50,7 +50,7 @@ impl BTree {
         if needSplit {
 
             println!("Split at Root!");
-            let mut newRoot = Box::new(Node::new());
+            let mut newRoot = Node::new();
             std::mem::swap(&mut newRoot, &mut self.root);
 
             let split = newRoot.split();
@@ -65,7 +65,7 @@ impl BTree {
     fn print(&self) {
         println!("{}", self.root);
 
-        let mut next = Vec::<&(Box<Node>)>::with_capacity(10);
+        let mut next = Vec::<&Node>::with_capacity(10);
         for n in & self.root.ns {
             next.push(n);
         }
@@ -80,7 +80,7 @@ impl BTree {
             }
             println!();
 
-            let mut tmp = Vec::<&(Box<Node>)>::with_capacity(10);
+            let mut tmp = Vec::<&Node>::with_capacity(10);
             for n in & next {
                for c in & n.ns {
                     tmp.push(c);
@@ -101,7 +101,7 @@ impl BTree {
 
 struct Node {
     es: Vec<i64>,
-    ns: Vec<Box<Node>>,
+    ns: Vec<Node>,
 }
 
 fn test(x : Abc) -> Abc {
@@ -113,7 +113,7 @@ impl Node {
     fn new() -> Node {
         Node {
             es: Vec::<i64>::with_capacity(2),
-            ns: Vec::<Box<Node>>::with_capacity(3)
+            ns: Vec::<Node>::with_capacity(3)
         }
     }
 
@@ -160,11 +160,11 @@ impl Node {
     
 
     
-    fn split(&mut self) -> (i64, Box<Node>) {
+    fn split(&mut self) -> (i64, Node) {
         println!("XXX split 000");
         let M = 3;
         // let mut left = Node::new();
-        let mut right = Box::new(Node::new());
+        let mut right = Node::new();
 
         let mid = M / 2;
 
