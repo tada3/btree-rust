@@ -37,24 +37,28 @@ struct BTree<K, V> where K:Ord, K: fmt::Display {
 
 impl<K, V> BTree<K, V> where K:Ord, K: fmt::Display {
     fn new(m: usize) -> BTree<K, V> {
+        BTree::<K,V>::new_with(3)
+    }
+
+    fn new_with(order: usize) -> BTree<K, V> {
         BTree::<K, V> {
-            m: m,
+            m: order,
             root: Node::<K, V>::new(),
         }
     }
 
     fn insert(&mut self, x: K, v: V) {
-        let needSplit = self.root.insert(x, v);
-        if needSplit {
+        let need_split = self.root.insert(x, v, self.m);
+        if need_split {
             println!("Split at Root!");
-            let mut newRoot = Node::new();
-            std::mem::swap(&mut newRoot, &mut self.root);
+            let mut tmp = Node::new();
+            std::mem::swap(&mut tmp, &mut self.root);
 
-            let split = newRoot.split();
+            let split = tmp.split(self.m);
 
-            self.root.es.push(split.0);
+            self.root.ks.push(split.0);
             self.root.vs.push(split.1);
-            self.root.ns.push(newRoot);
+            self.root.ns.push(tmp);
             self.root.ns.push(split.2);
         }
     }
@@ -102,7 +106,7 @@ impl<K, V> BTree<K, V> where K:Ord, K: fmt::Display {
 // More work is required in the insert, but it does not matter
 // in a usual case.
 struct Node<K, V> where K:Ord {
-    es: Vec<K>,
+    ks: Vec<K>,
     vs: Vec<V>,
     ns: Vec<Node<K, V>>,
 }
@@ -110,34 +114,34 @@ struct Node<K, V> where K:Ord {
 impl<K, V> Node<K, V> where K:Ord, K: fmt::Display {
     fn new() -> Node<K, V> {
         Node::<K, V> {
-            es: Vec::<K>::with_capacity(2),
+            ks: Vec::<K>::with_capacity(2),
             vs: Vec::<V>::with_capacity(2),
             ns: Vec::<Node<K, V>>::with_capacity(3),
         }
     }
 
-    fn insert(&mut self, x: K, v: V) -> bool {
+    fn insert(&mut self, x: K, v: V, m: usize) -> bool {
         let pos = self.find_pos(&x);
         if self.ns.len() == 0 {
             println!("Insert A");
             if pos.1 {
                 // overwrite
-                self.es[pos.0] = x;
+                self.ks[pos.0] = x;
                 self.vs[pos.0] = v;
                 return false;
             }
             // insert
-            self.es.insert(pos.0, x);
+            self.ks.insert(pos.0, x);
             self.vs.insert(pos.0, v);
-            return self.es.len() == 3;
+            return self.ks.len() == 3;
         }
 
         println!("Insert B");
 
-        let need_split = self.ns[pos.0].insert(x, v);
+        let need_split = self.ns[pos.0].insert(x, v, m);
         if need_split {
-            self.split_child(pos.0);
-            return self.es.len() == 3;
+            self.split_child(pos.0, m);
+            return self.ks.len() == 3;
         }
 
         return false;
@@ -156,26 +160,26 @@ impl<K, V> Node<K, V> where K:Ord, K: fmt::Display {
         return self.ns[pos.0].find(x);
     }
 
-    fn split_child(&mut self, pos: usize) {
-        let result = self.ns[pos].split();
-        self.es.insert(pos, result.0);
+    fn split_child(&mut self, pos: usize, m: usize) {
+        let result = self.ns[pos].split(m);
+        self.ks.insert(pos, result.0);
         self.vs.insert(pos, result.1);
         self.ns.insert(pos + 1, result.2);
     }
 
     // Split self into two nodes (self and right).
-    fn split(&mut self) -> (K, V, Node<K, V>) {
+    fn split(&mut self, M: usize) -> (K, V, Node<K, V>) {
         println!("XXX split 000");
-        let M = 3;
+
         let mut right = Node::new();
 
         let mid = M / 2;
 
 
-        right.es = self.es.split_off(mid + 1);
+        right.ks = self.ks.split_off(mid + 1);
         right.vs = self.vs.split_off(mid + 1);
 
-        let midE = self.es.pop().unwrap();
+        let midE = self.ks.pop().unwrap();
         let midV = self.vs.pop().unwrap();
 
 
@@ -186,24 +190,24 @@ impl<K, V> Node<K, V> where K:Ord, K: fmt::Display {
     }
 
     fn find_pos(&self, x: &K) -> (usize, bool) {
-        for i in 0..self.es.len() {
-            if x < &self.es[i] {
+        for i in 0..self.ks.len() {
+            if x < &self.ks[i] {
                 return (i, false);
-            } else if x == &self.es[i] {
+            } else if x == &self.ks[i] {
                 return (i, true);
             }
         }
-        return (self.es.len(), false);
+        return (self.ks.len(), false);
     }
 }
 
 impl<K, V> fmt::Display for Node<K, V> where K:Ord, K: fmt::Display{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[");
-        if self.es.len() > 0 {
-            write!(f, "{}", self.es[0]);
-            for i in 1..self.es.len() {
-                write!(f, ",{}", self.es[i]);
+        if self.ks.len() > 0 {
+            write!(f, "{}", self.ks[0]);
+            for i in 1..self.ks.len() {
+                write!(f, ",{}", self.ks[i]);
             }
         }
         write!(f, "]");
