@@ -3,35 +3,32 @@ use std::fmt;
 fn main() {
     println!("Start!");
     let mut b = BTree::new(3);
-    b.insert(10);
-    b.insert(20);
-    b.print();
-    
-    b.insert(30);
+    b.insert(10, 10);
+    b.insert(20, 20);
     b.print();
 
-    b.insert(25);
+    b.insert(30, 30);
     b.print();
 
-    b.insert(15);
+    b.insert(25, 25);
     b.print();
 
-    b.insert(0);
+    b.insert(15, 15);
     b.print();
 
-    b.insert(35);
+    b.insert(0, 0);
     b.print();
 
-    println!("20: {}", b.find(20));
-    println!("100: {}", b.find(100));
-    println!("0: {}", b.find(0));
-    println!("1: {}", b.find(1));
+    b.insert(35, 35);
+    b.print();
+
+    println!("20: {:?}", b.find(20));
+    println!("100: {:?}", b.find(100));
+    println!("0: {:?}", b.find(0));
+    println!("1: {:?}", b.find(1));
 
     println!("Done");
-
 }
-
-
 
 struct BTree {
     m: usize,
@@ -42,28 +39,27 @@ impl BTree {
     fn new(m: usize) -> BTree {
         BTree {
             m: m,
-            root: Node::new()
+            root: Node::new(),
         }
     }
 
-    fn insert(&mut self, x: i64) {
-        let needSplit = self.root.insert(x);
+    fn insert(&mut self, x: i64, v: i64) {
+        let needSplit = self.root.insert(x, v);
         if needSplit {
-
             println!("Split at Root!");
             let mut newRoot = Node::new();
             std::mem::swap(&mut newRoot, &mut self.root);
 
             let split = newRoot.split();
-            
 
             self.root.es.push(split.0);
+            self.root.vs.push(split.1);
             self.root.ns.push(newRoot);
-            self.root.ns.push(split.1);
+            self.root.ns.push(split.2);
         }
     }
 
-    fn find(&self, x:i64) -> bool {
+    fn find(&self, x: i64) -> Option<i64> {
         return self.root.find(x);
     }
 
@@ -71,7 +67,7 @@ impl BTree {
         println!("{}", self.root);
 
         let mut next = Vec::<&Node>::with_capacity(10);
-        for n in & self.root.ns {
+        for n in &self.root.ns {
             next.push(n);
         }
 
@@ -80,30 +76,34 @@ impl BTree {
                 break;
             }
 
-            for n in & next {
+            for n in &next {
                 print!("{} ", n);
             }
             println!();
 
             let mut tmp = Vec::<&Node>::with_capacity(10);
-            for n in & next {
-               for c in & n.ns {
+            for n in &next {
+                for c in &n.ns {
                     tmp.push(c);
                 }
             }
 
             std::mem::swap(&mut tmp, &mut next);
-
         }
-       
+
         println!();
     }
-
 }
 
-
+// Separate keys and values.
+// In the search, I need to acess only keys.
+// Having keys as a dedicated data structure makes
+// the search faster.
+// More work is required in the insert, but it does not matter
+// in a usual case.
 struct Node {
     es: Vec<i64>,
+    vs: Vec<i64>,
     ns: Vec<Node>,
 }
 
@@ -111,119 +111,93 @@ impl Node {
     fn new() -> Node {
         Node {
             es: Vec::<i64>::with_capacity(2),
-            ns: Vec::<Node>::with_capacity(3)
+            vs: Vec::<i64>::with_capacity(2),
+            ns: Vec::<Node>::with_capacity(3),
         }
     }
 
-    fn insert(&mut self, x : i64) -> bool {
+    fn insert(&mut self, x: i64, v: i64) -> bool {
         let pos = self.find_pos(x);
         if self.ns.len() == 0 {
             println!("Insert A");
             if pos.1 {
                 // overwrite
                 self.es[pos.0] = x;
+                self.vs[pos.0] = v;
                 return false;
             }
             // insert
             self.es.insert(pos.0, x);
+            self.vs.insert(pos.0, x);
             return self.es.len() == 3;
         }
 
         println!("Insert B");
 
-        let need_split = self.ns[pos.0].insert(x);
+        let need_split = self.ns[pos.0].insert(x, v);
         if need_split {
             self.split_child(pos.0);
             return self.es.len() == 3;
         }
-        
+
         return false;
     }
 
-    fn find(&self, x:i64) -> bool {
+    fn find(&self, x: i64) -> Option<i64> {
         let pos = self.find_pos(x);
         if pos.1 {
-            return true;
+            return Some(self.vs[pos.0]);
         }
 
         if self.ns.len() == 0 {
-            return false;
+            return None;
         }
 
         return self.ns[pos.0].find(x);
     }
-    
 
-    
-    fn split_child(&mut self, pos:usize) {
+    fn split_child(&mut self, pos: usize) {
         let result = self.ns[pos].split();
         self.es.insert(pos, result.0);
-        //self.ns[pos] = result.1;
-        self.ns.insert(pos + 1, result.1);
+        self.vs.insert(pos, result.1);
+        self.ns.insert(pos + 1, result.2);
     }
-    
 
-    
-    fn split(&mut self) -> (i64, Node) {
+    // Split self into two nodes (self and right).
+    fn split(&mut self) -> (i64, i64, Node) {
         println!("XXX split 000");
         let M = 3;
-        // let mut left = Node::new();
         let mut right = Node::new();
 
         let mid = M / 2;
 
-        //left.es.extend_from_slice(&self.es[0..mid]);
-        //right.es.extend_from_slice(&self.es[mid+1..M]);
-        right.es = self.es.split_off(mid+1);
-        
 
-        if self.ns.len() > 0 {
-            //left.ns.extend_from_slice(&self.ns[0..mid]);
-            //for i in 0..mid {
-            //    left.ns.push(self.ns[i]);
-            //}
-            right.ns = self.ns.split_off(mid + 1);
- 
-
-            //for (int i = 0; i < mid; i++) {
-            //    left.ns.add(ns.get(i));
-            //}
-            //left.ns.add(ns.get(mid));
-            //left.ns.push(self.ns[mid]);
-
-
-            //right.ns.extend_from_slice(self.ns[mid+1..M]);
-            //for (int i = mid + 1; i < es.size(); i++) {
-            //    right.ns.add(ns.get(i));
-            //}
-            //for i in mid+1..M {
-            //    right.ns.push(self.ns[i]);
-            //}
-            //right.ns.push(self.ns[M]);
-        }
-        println!("XXX left={}", self);
+        right.es = self.es.split_off(mid + 1);
+        right.vs = self.vs.split_off(mid + 1);
 
         let midE = self.es.pop().unwrap();
-        //return new Triple<>(midE, left, right);
-       // return (midE, left, right);
-       //println!("XXX left={}", self)
-       println!("XXX midE={}", midE);
-       println!("XXX right={}", right);
-       return (midE, right);
+        let midV = self.vs.pop().unwrap();
+
+
+        if self.ns.len() > 0 {
+            right.ns = self.ns.split_off(mid + 1);
+        }
+        println!("XXX left={}", self);
+        println!("XXX midE={}", midE);
+        println!("XXX right={}", right);
+        return (midE, midV, right);
     }
-    
 
     fn find_pos(&self, x: i64) -> (usize, bool) {
         for i in 0..self.es.len() {
             if x < self.es[i] {
                 return (i, false);
             } else if x == self.es[i] {
-                return (i, true); 
-            } 
+                return (i, true);
+            }
         }
         return (self.es.len(), false);
     }
-
 }
 
 impl fmt::Display for Node {
