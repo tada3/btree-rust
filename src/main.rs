@@ -30,20 +30,20 @@ fn main() {
     println!("Done");
 }
 
-struct BTree {
+struct BTree<V> {
     m: usize,
-    root: Node,
+    root: Node<V>,
 }
 
-impl BTree {
-    fn new(m: usize) -> BTree {
-        BTree {
+impl<V> BTree<V> {
+    fn new(m: usize) -> BTree<V> {
+        BTree::<V> {
             m: m,
-            root: Node::new(),
+            root: Node::<V>::new(),
         }
     }
 
-    fn insert(&mut self, x: i64, v: i64) {
+    fn insert(&mut self, x: i64, v: V) {
         let needSplit = self.root.insert(x, v);
         if needSplit {
             println!("Split at Root!");
@@ -59,14 +59,14 @@ impl BTree {
         }
     }
 
-    fn find(&self, x: i64) -> Option<i64> {
+    fn find(&self, x: i64) -> Option<&V> {
         return self.root.find(x);
     }
 
     fn print(&self) {
         println!("{}", self.root);
 
-        let mut next = Vec::<&Node>::with_capacity(10);
+        let mut next = Vec::<&Node<V>>::with_capacity(10);
         for n in &self.root.ns {
             next.push(n);
         }
@@ -81,7 +81,7 @@ impl BTree {
             }
             println!();
 
-            let mut tmp = Vec::<&Node>::with_capacity(10);
+            let mut tmp = Vec::<&Node<V>>::with_capacity(10);
             for n in &next {
                 for c in &n.ns {
                     tmp.push(c);
@@ -101,22 +101,22 @@ impl BTree {
 // the search faster.
 // More work is required in the insert, but it does not matter
 // in a usual case.
-struct Node {
+struct Node<V> {
     es: Vec<i64>,
-    vs: Vec<i64>,
-    ns: Vec<Node>,
+    vs: Vec<V>,
+    ns: Vec<Node<V>>,
 }
 
-impl Node {
-    fn new() -> Node {
-        Node {
+impl<V> Node<V> {
+    fn new() -> Node<V> {
+        Node::<V> {
             es: Vec::<i64>::with_capacity(2),
-            vs: Vec::<i64>::with_capacity(2),
-            ns: Vec::<Node>::with_capacity(3),
+            vs: Vec::<V>::with_capacity(2),
+            ns: Vec::<Node<V>>::with_capacity(3),
         }
     }
 
-    fn insert(&mut self, x: i64, v: i64) -> bool {
+    fn insert(&mut self, x: i64, v: V) -> bool {
         let pos = self.find_pos(x);
         if self.ns.len() == 0 {
             println!("Insert A");
@@ -128,7 +128,7 @@ impl Node {
             }
             // insert
             self.es.insert(pos.0, x);
-            self.vs.insert(pos.0, x);
+            self.vs.insert(pos.0, v);
             return self.es.len() == 3;
         }
 
@@ -143,10 +143,10 @@ impl Node {
         return false;
     }
 
-    fn find(&self, x: i64) -> Option<i64> {
+    fn find(&self, x: i64) -> Option<&V> {
         let pos = self.find_pos(x);
         if pos.1 {
-            return Some(self.vs[pos.0]);
+            return Some(&self.vs[pos.0]);
         }
 
         if self.ns.len() == 0 {
@@ -164,7 +164,7 @@ impl Node {
     }
 
     // Split self into two nodes (self and right).
-    fn split(&mut self) -> (i64, i64, Node) {
+    fn split(&mut self) -> (i64, V, Node<V>) {
         println!("XXX split 000");
         let M = 3;
         let mut right = Node::new();
@@ -182,9 +182,7 @@ impl Node {
         if self.ns.len() > 0 {
             right.ns = self.ns.split_off(mid + 1);
         }
-        println!("XXX left={}", self);
         println!("XXX midE={}", midE);
-        println!("XXX right={}", right);
         return (midE, midV, right);
     }
 
@@ -200,7 +198,7 @@ impl Node {
     }
 }
 
-impl fmt::Display for Node {
+impl<V> fmt::Display for Node<V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[");
         if self.es.len() > 0 {
