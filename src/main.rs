@@ -2,7 +2,7 @@ use std::fmt;
 
 fn main() {
     println!("Start!");
-    let mut b = BTree::new(3);
+    let mut b = BTree::<i64>::new(3);
     b.insert(10, 10);
     b.insert(20, 20);
     b.print();
