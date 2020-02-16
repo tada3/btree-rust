@@ -2,7 +2,7 @@ use std::fmt;
 
 fn main() {
     println!("Start!");
-    let mut b = BTree::<i64>::new(3);
+    let mut b = BTree::<i64, i64>::new(3);
     b.insert(10, 10);
     b.insert(20, 20);
     b.print();
@@ -22,28 +22,28 @@ fn main() {
     b.insert(35, 35);
     b.print();
 
-    println!("20: {:?}", b.find(20));
-    println!("100: {:?}", b.find(100));
-    println!("0: {:?}", b.find(0));
-    println!("1: {:?}", b.find(1));
+    println!("20: {:?}", b.find(&20));
+    println!("100: {:?}", b.find(&100));
+    println!("0: {:?}", b.find(&0));
+    println!("1: {:?}", b.find(&1));
 
     println!("Done");
 }
 
-struct BTree<V> {
+struct BTree<K, V> where K:Ord, K: fmt::Display {
     m: usize,
-    root: Node<V>,
+    root: Node<K, V>,
 }
 
-impl<V> BTree<V> {
-    fn new(m: usize) -> BTree<V> {
-        BTree::<V> {
+impl<K, V> BTree<K, V> where K:Ord, K: fmt::Display {
+    fn new(m: usize) -> BTree<K, V> {
+        BTree::<K, V> {
             m: m,
-            root: Node::<V>::new(),
+            root: Node::<K, V>::new(),
         }
     }
 
-    fn insert(&mut self, x: i64, v: V) {
+    fn insert(&mut self, x: K, v: V) {
         let needSplit = self.root.insert(x, v);
         if needSplit {
             println!("Split at Root!");
@@ -59,14 +59,14 @@ impl<V> BTree<V> {
         }
     }
 
-    fn find(&self, x: i64) -> Option<&V> {
+    fn find(&self, x: &K) -> Option<&V> {
         return self.root.find(x);
     }
 
     fn print(&self) {
         println!("{}", self.root);
 
-        let mut next = Vec::<&Node<V>>::with_capacity(10);
+        let mut next = Vec::<&Node<K, V>>::with_capacity(10);
         for n in &self.root.ns {
             next.push(n);
         }
@@ -81,7 +81,7 @@ impl<V> BTree<V> {
             }
             println!();
 
-            let mut tmp = Vec::<&Node<V>>::with_capacity(10);
+            let mut tmp = Vec::<&Node<K, V>>::with_capacity(10);
             for n in &next {
                 for c in &n.ns {
                     tmp.push(c);
@@ -101,23 +101,23 @@ impl<V> BTree<V> {
 // the search faster.
 // More work is required in the insert, but it does not matter
 // in a usual case.
-struct Node<V> {
-    es: Vec<i64>,
+struct Node<K, V> where K:Ord {
+    es: Vec<K>,
     vs: Vec<V>,
-    ns: Vec<Node<V>>,
+    ns: Vec<Node<K, V>>,
 }
 
-impl<V> Node<V> {
-    fn new() -> Node<V> {
-        Node::<V> {
-            es: Vec::<i64>::with_capacity(2),
+impl<K, V> Node<K, V> where K:Ord, K: fmt::Display {
+    fn new() -> Node<K, V> {
+        Node::<K, V> {
+            es: Vec::<K>::with_capacity(2),
             vs: Vec::<V>::with_capacity(2),
-            ns: Vec::<Node<V>>::with_capacity(3),
+            ns: Vec::<Node<K, V>>::with_capacity(3),
         }
     }
 
-    fn insert(&mut self, x: i64, v: V) -> bool {
-        let pos = self.find_pos(x);
+    fn insert(&mut self, x: K, v: V) -> bool {
+        let pos = self.find_pos(&x);
         if self.ns.len() == 0 {
             println!("Insert A");
             if pos.1 {
@@ -143,7 +143,7 @@ impl<V> Node<V> {
         return false;
     }
 
-    fn find(&self, x: i64) -> Option<&V> {
+    fn find(&self, x: &K) -> Option<&V> {
         let pos = self.find_pos(x);
         if pos.1 {
             return Some(&self.vs[pos.0]);
@@ -164,7 +164,7 @@ impl<V> Node<V> {
     }
 
     // Split self into two nodes (self and right).
-    fn split(&mut self) -> (i64, V, Node<V>) {
+    fn split(&mut self) -> (K, V, Node<K, V>) {
         println!("XXX split 000");
         let M = 3;
         let mut right = Node::new();
@@ -182,15 +182,14 @@ impl<V> Node<V> {
         if self.ns.len() > 0 {
             right.ns = self.ns.split_off(mid + 1);
         }
-        println!("XXX midE={}", midE);
         return (midE, midV, right);
     }
 
-    fn find_pos(&self, x: i64) -> (usize, bool) {
+    fn find_pos(&self, x: &K) -> (usize, bool) {
         for i in 0..self.es.len() {
-            if x < self.es[i] {
+            if x < &self.es[i] {
                 return (i, false);
-            } else if x == self.es[i] {
+            } else if x == &self.es[i] {
                 return (i, true);
             }
         }
@@ -198,7 +197,7 @@ impl<V> Node<V> {
     }
 }
 
-impl<V> fmt::Display for Node<V> {
+impl<K, V> fmt::Display for Node<K, V> where K:Ord, K: fmt::Display{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[");
         if self.es.len() > 0 {
