@@ -22,15 +22,16 @@ fn main() {
     b.insert(35);
     b.print();
 
+    println!("20: {}", b.find(20));
+    println!("100: {}", b.find(100));
+    println!("0: {}", b.find(0));
+    println!("1: {}", b.find(1));
+
     println!("Done");
 
 }
 
 
-struct Abc {
-    age: i64,
-    name: String,
-}
 
 struct BTree {
     m: usize,
@@ -62,6 +63,10 @@ impl BTree {
         }
     }
 
+    fn find(&self, x:i64) -> bool {
+        return self.root.find(x);
+    }
+
     fn print(&self) {
         println!("{}", self.root);
 
@@ -91,8 +96,6 @@ impl BTree {
 
         }
        
-        
-
         println!();
     }
 
@@ -104,25 +107,12 @@ struct Node {
     ns: Vec<Node>,
 }
 
-fn test(x : Abc) -> Abc {
-    println!("AAAAA {}, {}", x.age, x.name);
-    return x;
-}
-
 impl Node {
     fn new() -> Node {
         Node {
             es: Vec::<i64>::with_capacity(2),
             ns: Vec::<Node>::with_capacity(3)
         }
-    }
-
-    fn print(&self) {
-        for e in self.es.iter() {
-            print!("{} ", e);
-        }
-        println!();
-        println!();
     }
 
     fn insert(&mut self, x : i64) -> bool {
@@ -149,6 +139,20 @@ impl Node {
         
         return false;
     }
+
+    fn find(&self, x:i64) -> bool {
+        let pos = self.find_pos(x);
+        if pos.1 {
+            return true;
+        }
+
+        if self.ns.len() == 0 {
+            return false;
+        }
+
+        return self.ns[pos.0].find(x);
+    }
+    
 
     
     fn split_child(&mut self, pos:usize) {
