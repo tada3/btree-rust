@@ -1,6 +1,14 @@
 use std::fmt;
+use std::iter::IntoIterator;
+use std::iter::Iterator;
 
 fn main() {
+    test1();
+    //test2();
+    //test3();
+}
+
+fn test1() {
     println!("Start!");
     let mut b = BTree::<i64, i64>::new(3);
     b.insert(10, 10);
@@ -30,14 +38,244 @@ fn main() {
     println!("Done");
 }
 
-struct BTree<K, V> where K:Ord, K: fmt::Display {
+fn test2() {
+    println!("Start!");
+    let mut b = BTree::<i64, i64>::new(3);
+    b.insert(10, 10);
+    b.insert(20, 20);
+
+    b.insert(30, 30);
+
+    b.insert(25, 25);
+
+    b.insert(15, 15);
+
+    b.insert(0, 0);
+
+    b.insert(35, 35);
+
+    b.print();
+    println!("Iterator!");
+    for x in b.iter() {
+        println!("{:?}", x)
+    }
+
+    println!("Done");
+}
+
+
+fn test3() {
+    println!("Start!");
+    let mut b = BTree::<i64, i64>::new(3);
+    b.insert(10, 10);
+    b.insert(20, 20);
+
+    b.insert(30, 30);
+
+    b.insert(25, 25);
+
+    b.insert(15, 15);
+
+    b.insert(0, 0);
+
+    b.insert(35, 35);
+
+    b.print();
+    println!("\nFrom 10");
+    let mut it = b.iter();
+    it.move_to(&10);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("\nFrom 30");
+    it = b.iter();
+    it.move_to(&30);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("\nFrom 35");
+    it = b.iter();
+    it.move_to(&35);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("\nFrom -1");
+    it = b.iter();
+    it.move_to(&-1);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("\nFrom 13");
+    it = b.iter();
+    it.move_to(&13);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("\nFrom 100");
+    it = b.iter();
+    it.move_to(&100);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("Done");
+}
+
+struct BTree<K, V>
+where
+    K: Ord,
+    K: fmt::Display,
+{
     m: usize,
     root: Node<K, V>,
 }
 
-impl<K, V> BTree<K, V> where K:Ord, K: fmt::Display {
+struct NodeIter<'a, K, V>
+where
+    K: Ord,
+    K: fmt::Display,
+{
+    node: &'a Node<K, V>,
+    pos: usize,
+    go_child: bool,
+}
+
+struct BTreeIterator<'a, K, V>
+where
+    K: Ord,
+    K: fmt::Display,
+{
+    stack: Vec<NodeIter<'a, K, V>>,
+    curr: NodeIter<'a, K, V>,
+}
+
+impl<'a, K, V> BTreeIterator<'a, K, V>
+where
+    K: Ord,
+    K: fmt::Display,
+{
+    fn move_to(&mut self, x: &K) {
+        loop {
+            let pos = self.curr.node.find_pos(x);
+            self.curr.pos = pos.0;
+            if pos.1 {
+                self.curr.go_child = false;
+                return;
+            }
+
+            if self.curr.node.is_leaf() {
+                return;
+            }
+
+            self.curr.go_child = false;            
+            let child = &self.curr.node.ns[pos.0];
+            let mut tmp = NodeIter {
+                node: child,
+                pos: 0,
+                go_child: false,
+            };
+            std::mem::swap(&mut tmp, &mut self.curr);
+            self.stack.push(tmp);
+        }
+    }
+}
+
+impl<'a, K, V> Iterator for BTreeIterator<'a, K, V>
+where
+    K: Ord,
+    K: fmt::Display,
+{
+    type Item = (&'a K, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.curr.node.is_leaf() {
+                if self.curr.pos < self.curr.node.ks.len() {
+                    // Get the right neighbor
+                    let key = &self.curr.node.ks[self.curr.pos];
+                    let val = &self.curr.node.vs[self.curr.pos];
+                    self.curr.pos += 1;
+                    return Some((key, val));
+                } else {
+                    match self.stack.pop() {
+                        Some(x) => {
+                            self.curr = x;
+                            continue;
+                        }
+                        None => {
+                            return None;
+                        }
+                    }
+                }
+            } else {
+                if self.curr.go_child {
+                    loop {
+                        self.curr.go_child = false;
+                        let child = &self.curr.node.ns[self.curr.pos];
+                        let mut tmp = NodeIter {
+                            node: child,
+                            pos: 0,
+                            go_child: false,
+                        };
+
+                        std::mem::swap(&mut tmp, &mut self.curr);
+                        self.stack.push(tmp);
+
+                        if child.is_leaf() {
+                            break;
+                        }
+                    }
+                    continue;
+                } else {
+                    if self.curr.pos < self.curr.node.ks.len() {
+                        // Get the right neighbor
+                        let key = &self.curr.node.ks[self.curr.pos];
+                        let val = &self.curr.node.vs[self.curr.pos];
+                        self.curr.pos += 1;
+                        self.curr.go_child = true;
+                        return Some((key, val));
+                    } else {
+                        match self.stack.pop() {
+                            Some(x) => {
+                                self.curr = x;
+                                continue;
+                            }
+                            None => {
+                                return None;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl<'a, K, V> IntoIterator for &'a BTree<K, V>
+where
+    K: Ord,
+    K: fmt::Display,
+{
+    type Item = (&'a K, &'a V);
+    type IntoIter = BTreeIterator<'a, K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<K, V> BTree<K, V>
+where
+    K: Ord,
+    K: fmt::Display,
+{
     fn new(m: usize) -> BTree<K, V> {
-        BTree::<K,V>::new_with(3)
+        BTree::<K, V>::new_with(3)
     }
 
     fn new_with(order: usize) -> BTree<K, V> {
@@ -47,10 +285,34 @@ impl<K, V> BTree<K, V> where K:Ord, K: fmt::Display {
         }
     }
 
+    fn iter_from(&self, x: &K) -> BTreeIterator<K, V> {
+        let mut it = self.iter();
+
+        loop {
+            let pos = it.curr.node.find_pos(x);
+            if pos.1 {
+                it.curr.pos = pos.0;
+                it.curr.go_child = false;
+            }
+
+            if it.curr.node.is_leaf() {}
+        }
+    }
+
+    fn iter(&self) -> BTreeIterator<K, V> {
+        BTreeIterator {
+            stack: Vec::new(),
+            curr: NodeIter {
+                node: &self.root,
+                pos: 0,
+                go_child: true,
+            },
+        }
+    }
+
     fn insert(&mut self, x: K, v: V) {
         let need_split = self.root.insert(x, v, self.m);
         if need_split {
-            println!("Split at Root!");
             let mut tmp = Node::new();
             std::mem::swap(&mut tmp, &mut self.root);
 
@@ -105,13 +367,20 @@ impl<K, V> BTree<K, V> where K:Ord, K: fmt::Display {
 // the search faster.
 // More work is required in the insert, but it does not matter
 // in a usual case.
-struct Node<K, V> where K:Ord {
+struct Node<K, V>
+where
+    K: Ord,
+{
     ks: Vec<K>,
     vs: Vec<V>,
     ns: Vec<Node<K, V>>,
 }
 
-impl<K, V> Node<K, V> where K:Ord, K: fmt::Display {
+impl<K, V> Node<K, V>
+where
+    K: Ord,
+    K: fmt::Display,
+{
     fn new() -> Node<K, V> {
         Node::<K, V> {
             ks: Vec::<K>::with_capacity(2),
@@ -120,10 +389,13 @@ impl<K, V> Node<K, V> where K:Ord, K: fmt::Display {
         }
     }
 
+    fn is_leaf(&self) -> bool {
+        return self.ns.is_empty();
+    }
+
     fn insert(&mut self, x: K, v: V, m: usize) -> bool {
         let pos = self.find_pos(&x);
         if self.ns.len() == 0 {
-            println!("Insert A");
             if pos.1 {
                 // overwrite
                 self.ks[pos.0] = x;
@@ -135,8 +407,6 @@ impl<K, V> Node<K, V> where K:Ord, K: fmt::Display {
             self.vs.insert(pos.0, v);
             return self.ks.len() == 3;
         }
-
-        println!("Insert B");
 
         let need_split = self.ns[pos.0].insert(x, v, m);
         if need_split {
@@ -169,19 +439,15 @@ impl<K, V> Node<K, V> where K:Ord, K: fmt::Display {
 
     // Split self into two nodes (self and right).
     fn split(&mut self, M: usize) -> (K, V, Node<K, V>) {
-        println!("XXX split 000");
-
         let mut right = Node::new();
 
         let mid = M / 2;
-
 
         right.ks = self.ks.split_off(mid + 1);
         right.vs = self.vs.split_off(mid + 1);
 
         let midE = self.ks.pop().unwrap();
         let midV = self.vs.pop().unwrap();
-
 
         if self.ns.len() > 0 {
             right.ns = self.ns.split_off(mid + 1);
@@ -201,7 +467,11 @@ impl<K, V> Node<K, V> where K:Ord, K: fmt::Display {
     }
 }
 
-impl<K, V> fmt::Display for Node<K, V> where K:Ord, K: fmt::Display{
+impl<K, V> fmt::Display for Node<K, V>
+where
+    K: Ord,
+    K: fmt::Display,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[");
         if self.ks.len() > 0 {
