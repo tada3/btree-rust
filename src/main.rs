@@ -3,14 +3,15 @@ use std::iter::IntoIterator;
 use std::iter::Iterator;
 
 fn main() {
-    test1();
+    //test1();
     //test2();
     //test3();
+    test4();
 }
 
 fn test1() {
     println!("Start!");
-    let mut b = BTree::<i64, i64>::new(3);
+    let mut b = BTree::<i64, i64>::new();
     b.insert(10, 10);
     b.insert(20, 20);
     b.print();
@@ -40,7 +41,7 @@ fn test1() {
 
 fn test2() {
     println!("Start!");
-    let mut b = BTree::<i64, i64>::new(3);
+    let mut b = BTree::<i64, i64>::new_with(3);
     b.insert(10, 10);
     b.insert(20, 20);
 
@@ -66,7 +67,7 @@ fn test2() {
 
 fn test3() {
     println!("Start!");
-    let mut b = BTree::<i64, i64>::new(3);
+    let mut b = BTree::<i64, i64>::new_with(5);
     b.insert(10, 10);
     b.insert(20, 20);
 
@@ -122,6 +123,46 @@ fn test3() {
     for x in it {
         println!("{:?}", x)
     }
+
+    println!("Done");
+}
+
+
+fn test4() {
+    println!("Test4 m=5");
+    let mut b = BTree::<i64, i64>::new_with(5);
+    b.insert(10, 10);
+    b.insert(20, 20);
+    b.print();
+
+    b.insert(30, 30);
+    b.print();
+
+    b.insert(25, 25);
+    b.print();
+
+    b.insert(15, 15);
+    b.print();
+
+    b.insert(0, 0);
+    b.print();
+
+    b.insert(35, 35);
+    b.print();
+
+    b.insert(40, 40);
+    b.print();
+
+    b.insert(-20, -20);
+    b.print();
+
+    b.insert(-10, -10);
+    b.print();
+
+    println!("20: {:?}", b.find(&20));
+    println!("100: {:?}", b.find(&100));
+    println!("0: {:?}", b.find(&0));
+    println!("1: {:?}", b.find(&1));
 
     println!("Done");
 }
@@ -274,14 +315,14 @@ where
     K: Ord,
     K: fmt::Display,
 {
-    fn new(m: usize) -> BTree<K, V> {
+    fn new() -> BTree<K, V> {
         BTree::<K, V>::new_with(3)
     }
 
     fn new_with(order: usize) -> BTree<K, V> {
         BTree::<K, V> {
             m: order,
-            root: Node::<K, V>::new(),
+            root: Node::<K, V>::new(order),
         }
     }
 
@@ -313,7 +354,7 @@ where
     fn insert(&mut self, x: K, v: V) {
         let need_split = self.root.insert(x, v, self.m);
         if need_split {
-            let mut tmp = Node::new();
+            let mut tmp = Node::new(self.m);
             std::mem::swap(&mut tmp, &mut self.root);
 
             let split = tmp.split(self.m);
@@ -381,11 +422,11 @@ where
     K: Ord,
     K: fmt::Display,
 {
-    fn new() -> Node<K, V> {
+    fn new(m: usize) -> Node<K, V> {
         Node::<K, V> {
-            ks: Vec::<K>::with_capacity(2),
-            vs: Vec::<V>::with_capacity(2),
-            ns: Vec::<Node<K, V>>::with_capacity(3),
+            ks: Vec::<K>::with_capacity(m - 1),
+            vs: Vec::<V>::with_capacity(m - 1),
+            ns: Vec::<Node<K, V>>::with_capacity(m),
         }
     }
 
@@ -405,13 +446,13 @@ where
             // insert
             self.ks.insert(pos.0, x);
             self.vs.insert(pos.0, v);
-            return self.ks.len() == 3;
+            return self.ks.len() == m;
         }
 
         let need_split = self.ns[pos.0].insert(x, v, m);
         if need_split {
             self.split_child(pos.0, m);
-            return self.ks.len() == 3;
+            return self.ks.len() == m;
         }
 
         return false;
@@ -438,10 +479,10 @@ where
     }
 
     // Split self into two nodes (self and right).
-    fn split(&mut self, M: usize) -> (K, V, Node<K, V>) {
-        let mut right = Node::new();
+    fn split(&mut self, m: usize) -> (K, V, Node<K, V>) {
+        let mut right = Node::new(m);
 
-        let mid = M / 2;
+        let mid = m / 2;
 
         right.ks = self.ks.split_off(mid + 1);
         right.vs = self.vs.split_off(mid + 1);
