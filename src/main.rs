@@ -64,7 +64,6 @@ fn test2() {
     println!("Done");
 }
 
-
 fn test3() {
     println!("Start!");
     let mut b = BTree::<i64, i64>::new_with(5);
@@ -127,7 +126,6 @@ fn test3() {
     println!("Done");
 }
 
-
 fn test4() {
     println!("Test4 m=5");
     let mut b = BTree::<i64, i64>::new_with(5);
@@ -176,6 +174,21 @@ where
     root: Node<K, V>,
 }
 
+// Separate keys and values.
+// In the search, I need to acess only keys.
+// Having keys as a dedicated data structure makes
+// the search faster.
+// More work is required in the insert, but it does not matter
+// in a usual case.
+struct Node<K, V>
+where
+    K: Ord,
+{
+    ks: Vec<K>,
+    vs: Vec<V>,
+    ns: Vec<Node<K, V>>,
+}
+
 struct NodeIter<'a, K, V>
 where
     K: Ord,
@@ -193,121 +206,6 @@ where
 {
     stack: Vec<NodeIter<'a, K, V>>,
     curr: NodeIter<'a, K, V>,
-}
-
-impl<'a, K, V> BTreeIterator<'a, K, V>
-where
-    K: Ord,
-    K: fmt::Display,
-{
-    fn move_to(&mut self, x: &K) {
-        loop {
-            let pos = self.curr.node.find_pos(x);
-            self.curr.pos = pos.0;
-            if pos.1 {
-                self.curr.go_child = false;
-                return;
-            }
-
-            if self.curr.node.is_leaf() {
-                return;
-            }
-
-            self.curr.go_child = false;            
-            let child = &self.curr.node.ns[pos.0];
-            let mut tmp = NodeIter {
-                node: child,
-                pos: 0,
-                go_child: false,
-            };
-            std::mem::swap(&mut tmp, &mut self.curr);
-            self.stack.push(tmp);
-        }
-    }
-}
-
-impl<'a, K, V> Iterator for BTreeIterator<'a, K, V>
-where
-    K: Ord,
-    K: fmt::Display,
-{
-    type Item = (&'a K, &'a V);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if self.curr.node.is_leaf() {
-                if self.curr.pos < self.curr.node.ks.len() {
-                    // Get the right neighbor
-                    let key = &self.curr.node.ks[self.curr.pos];
-                    let val = &self.curr.node.vs[self.curr.pos];
-                    self.curr.pos += 1;
-                    return Some((key, val));
-                } else {
-                    match self.stack.pop() {
-                        Some(x) => {
-                            self.curr = x;
-                            continue;
-                        }
-                        None => {
-                            return None;
-                        }
-                    }
-                }
-            } else {
-                if self.curr.go_child {
-                    loop {
-                        self.curr.go_child = false;
-                        let child = &self.curr.node.ns[self.curr.pos];
-                        let mut tmp = NodeIter {
-                            node: child,
-                            pos: 0,
-                            go_child: false,
-                        };
-
-                        std::mem::swap(&mut tmp, &mut self.curr);
-                        self.stack.push(tmp);
-
-                        if child.is_leaf() {
-                            break;
-                        }
-                    }
-                    continue;
-                } else {
-                    if self.curr.pos < self.curr.node.ks.len() {
-                        // Get the right neighbor
-                        let key = &self.curr.node.ks[self.curr.pos];
-                        let val = &self.curr.node.vs[self.curr.pos];
-                        self.curr.pos += 1;
-                        self.curr.go_child = true;
-                        return Some((key, val));
-                    } else {
-                        match self.stack.pop() {
-                            Some(x) => {
-                                self.curr = x;
-                                continue;
-                            }
-                            None => {
-                                return None;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-impl<'a, K, V> IntoIterator for &'a BTree<K, V>
-where
-    K: Ord,
-    K: fmt::Display,
-{
-    type Item = (&'a K, &'a V);
-    type IntoIter = BTreeIterator<'a, K, V>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
 }
 
 impl<K, V> BTree<K, V>
@@ -402,19 +300,17 @@ where
     }
 }
 
-// Separate keys and values.
-// In the search, I need to acess only keys.
-// Having keys as a dedicated data structure makes
-// the search faster.
-// More work is required in the insert, but it does not matter
-// in a usual case.
-struct Node<K, V>
+impl<'a, K, V> IntoIterator for &'a BTree<K, V>
 where
     K: Ord,
+    K: fmt::Display,
 {
-    ks: Vec<K>,
-    vs: Vec<V>,
-    ns: Vec<Node<K, V>>,
+    type Item = (&'a K, &'a V);
+    type IntoIter = BTreeIterator<'a, K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
 }
 
 impl<K, V> Node<K, V>
@@ -523,5 +419,107 @@ where
         }
         write!(f, "]");
         Ok(())
+    }
+}
+
+impl<'a, K, V> BTreeIterator<'a, K, V>
+where
+    K: Ord,
+    K: fmt::Display,
+{
+    fn move_to(&mut self, x: &K) {
+        loop {
+            let pos = self.curr.node.find_pos(x);
+            self.curr.pos = pos.0;
+            if pos.1 {
+                self.curr.go_child = false;
+                return;
+            }
+
+            if self.curr.node.is_leaf() {
+                return;
+            }
+
+            self.curr.go_child = false;
+            let child = &self.curr.node.ns[pos.0];
+            let mut tmp = NodeIter {
+                node: child,
+                pos: 0,
+                go_child: false,
+            };
+            std::mem::swap(&mut tmp, &mut self.curr);
+            self.stack.push(tmp);
+        }
+    }
+}
+
+impl<'a, K, V> Iterator for BTreeIterator<'a, K, V>
+where
+    K: Ord,
+    K: fmt::Display,
+{
+    type Item = (&'a K, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.curr.node.is_leaf() {
+                if self.curr.pos < self.curr.node.ks.len() {
+                    // Get the right neighbor
+                    let key = &self.curr.node.ks[self.curr.pos];
+                    let val = &self.curr.node.vs[self.curr.pos];
+                    self.curr.pos += 1;
+                    return Some((key, val));
+                } else {
+                    match self.stack.pop() {
+                        Some(x) => {
+                            self.curr = x;
+                            continue;
+                        }
+                        None => {
+                            return None;
+                        }
+                    }
+                }
+            } else {
+                if self.curr.go_child {
+                    loop {
+                        self.curr.go_child = false;
+                        let child = &self.curr.node.ns[self.curr.pos];
+                        let mut tmp = NodeIter {
+                            node: child,
+                            pos: 0,
+                            go_child: false,
+                        };
+
+                        std::mem::swap(&mut tmp, &mut self.curr);
+                        self.stack.push(tmp);
+
+                        if child.is_leaf() {
+                            break;
+                        }
+                    }
+                    continue;
+                } else {
+                    if self.curr.pos < self.curr.node.ks.len() {
+                        // Get the right neighbor
+                        let key = &self.curr.node.ks[self.curr.pos];
+                        let val = &self.curr.node.vs[self.curr.pos];
+                        self.curr.pos += 1;
+                        self.curr.go_child = true;
+                        return Some((key, val));
+                    } else {
+                        match self.stack.pop() {
+                            Some(x) => {
+                                self.curr = x;
+                                continue;
+                            }
+                            None => {
+                                return None;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
