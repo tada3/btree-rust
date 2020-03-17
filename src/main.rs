@@ -6,7 +6,9 @@ fn main() {
     //test1();
     //test2();
     //test3();
-    test4();
+    //test4();
+    //test5();
+    test6();
 }
 
 fn test1() {
@@ -165,6 +167,29 @@ fn test4() {
     println!("Done");
 }
 
+fn test5() {
+    println!("Test5 other features");
+    let mut b = BTree::<i64, i64>::new_with(5);
+    println!("{}", b.is_empty());
+    b.insert(10, 10);
+    println!("{}", b.is_empty());
+}
+
+fn test6() {
+    println!("Test6 Remove");
+    let mut b = BTree::<i64, i64>::new_with(5);
+    b.insert(10, 10);
+    b.insert(20, 20);
+    b.insert(30, 30);
+    b.insert(40, 40);
+    
+    b.print();
+
+    let x = b.remove(&20);
+    println!("20: {:?}", x);
+    b.print();
+}
+
 struct BTree<K, V>
 where
     K: Ord,
@@ -224,6 +249,10 @@ where
         }
     }
 
+    fn is_empty(&self) -> bool {
+        self.root.is_empty()
+    }
+
     fn iter_from(&self, x: &K) -> BTreeIterator<K, V> {
         let mut it = self.iter();
 
@@ -262,6 +291,12 @@ where
             self.root.ns.push(tmp);
             self.root.ns.push(split.2);
         }
+    }
+
+    fn remove(&mut self, x: &K) -> Option<V> {
+        let v = self.root.remove(x);
+
+        return v;
     }
 
     fn find(&self, x: &K) -> Option<&V> {
@@ -327,12 +362,18 @@ where
     }
 
     fn is_leaf(&self) -> bool {
-        return self.ns.is_empty();
+        self.ns.is_empty()
     }
+
+    fn is_empty(&self) -> bool {
+        self.ks.is_empty()
+    }
+
+    
 
     fn insert(&mut self, x: K, v: V, m: usize) -> bool {
         let pos = self.find_pos(&x);
-        if self.ns.len() == 0 {
+        if self.is_leaf() {
             if pos.1 {
                 // overwrite
                 self.ks[pos.0] = x;
@@ -352,6 +393,31 @@ where
         }
 
         return false;
+    }
+
+    fn remove(&mut self, x: &K, m:usize) -> Option<V> {
+        let pos = self.find_pos(&x);
+        if self.is_leaf() {
+            // 1. Leaf
+            if !pos.1 {
+                // Not found
+                return None;
+            }
+            self.ks.remove(pos.0);
+            return Some(self.vs.remove(pos.0));
+        }
+
+        // 2. Node
+        if pos.1 {
+            // 2.1. Remove from this node
+
+        }
+        
+        // 2.2. Remove from child
+
+
+        
+        return None;
     }
 
     fn find(&self, x: &K) -> Option<&V> {
@@ -402,6 +468,25 @@ where
         }
         return (self.ks.len(), false);
     }
+
+    fn remove_right_most(&mut self, m: usize) -> (K, V, bool) {
+        if self.is_leaf() {
+            // 1. Leaf
+            let last = self.ks.len() - 1;
+            let k = self.ks.remove(last);
+            let v = self.vs.remove(last);
+            return (k, v, self.is_empty());
+        }
+        // 2. Node (remove from child)
+        let last = self.ns.len() - 1;
+        let child = self.ns.get(last).unwrap();
+        let result = child.remove_right_most(m);
+        if result.2 {
+            borrow_or_merge_from_l(last);
+        }
+        return (result.0, result.1, self.ks.len() < m/2 )
+    }
+
 }
 
 impl<K, V> fmt::Display for Node<K, V>
