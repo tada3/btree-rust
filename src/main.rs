@@ -2,243 +2,6 @@ use std::fmt;
 use std::iter::IntoIterator;
 use std::iter::Iterator;
 
-fn main() {
-    //test1();
-    //test2();
-    //test3();
-    //test4();
-    //test5();
-    //test6();
-    test7();
-}
-
-fn test1() {
-    println!("Start!");
-    let mut b = BTree::<i64, i64>::new();
-    b.insert(10, 10);
-    b.insert(20, 20);
-    b.print();
-
-    b.insert(30, 30);
-    b.print();
-
-    b.insert(25, 25);
-    b.print();
-
-    b.insert(15, 15);
-    b.print();
-
-    b.insert(0, 0);
-    b.print();
-
-    b.insert(35, 35);
-    b.print();
-
-    println!("20: {:?}", b.find(&20));
-    println!("100: {:?}", b.find(&100));
-    println!("0: {:?}", b.find(&0));
-    println!("1: {:?}", b.find(&1));
-
-    println!("Done");
-}
-
-fn test2() {
-    println!("Start!");
-    let mut b = BTree::<i64, i64>::new_with(3);
-    b.insert(10, 10);
-    b.insert(20, 20);
-
-    b.insert(30, 30);
-
-    b.insert(25, 25);
-
-    b.insert(15, 15);
-
-    b.insert(0, 0);
-
-    b.insert(35, 35);
-
-    b.print();
-    println!("Iterator!");
-    for x in b.iter() {
-        println!("{:?}", x)
-    }
-
-    println!("Done");
-}
-
-fn test3() {
-    println!("Start!");
-    let mut b = BTree::<i64, i64>::new_with(5);
-    b.insert(10, 10);
-    b.insert(20, 20);
-
-    b.insert(30, 30);
-
-    b.insert(25, 25);
-
-    b.insert(15, 15);
-
-    b.insert(0, 0);
-
-    b.insert(35, 35);
-
-    b.print();
-    println!("\nFrom 10");
-    let mut it = b.iter();
-    it.move_to(&10);
-    for x in it {
-        println!("{:?}", x)
-    }
-
-    println!("\nFrom 30");
-    it = b.iter();
-    it.move_to(&30);
-    for x in it {
-        println!("{:?}", x)
-    }
-
-    println!("\nFrom 35");
-    it = b.iter();
-    it.move_to(&35);
-    for x in it {
-        println!("{:?}", x)
-    }
-
-    println!("\nFrom -1");
-    it = b.iter();
-    it.move_to(&-1);
-    for x in it {
-        println!("{:?}", x)
-    }
-
-    println!("\nFrom 13");
-    it = b.iter();
-    it.move_to(&13);
-    for x in it {
-        println!("{:?}", x)
-    }
-
-    println!("\nFrom 100");
-    it = b.iter();
-    it.move_to(&100);
-    for x in it {
-        println!("{:?}", x)
-    }
-
-    println!("Done");
-}
-
-fn test4() {
-    println!("Test4 m=5");
-    let mut b = BTree::<i64, i64>::new_with(5);
-    b.insert(10, 10);
-    b.insert(20, 20);
-    b.print();
-
-    b.insert(30, 30);
-    b.print();
-
-    b.insert(25, 25);
-    b.print();
-
-    b.insert(15, 15);
-    b.print();
-
-    b.insert(0, 0);
-    b.print();
-
-    b.insert(35, 35);
-    b.print();
-
-    b.insert(40, 40);
-    b.print();
-
-    b.insert(-20, -20);
-    b.print();
-
-    b.insert(-10, -10);
-    b.print();
-
-    println!("20: {:?}", b.find(&20));
-    println!("100: {:?}", b.find(&100));
-    println!("0: {:?}", b.find(&0));
-    println!("1: {:?}", b.find(&1));
-
-    println!("Done");
-}
-
-fn test5() {
-    println!("Test5 other features");
-    let mut b = BTree::<i64, i64>::new_with(5);
-    println!("{}", b.is_empty());
-    b.insert(10, 10);
-    println!("{}", b.is_empty());
-}
-
-fn test6() {
-    println!("Test6 Remove 1");
-    let mut b = BTree::<i64, i64>::new_with(3);
-    b.insert(10, 10);
-    b.insert(20, 20);
-    b.insert(30, 30);
-    b.insert(40, 40);
-
-    b.print();
-
-    let x = b.remove(&20);
-    println!("20: {:?}", x);
-    b.print();
-}
-
-fn test7() {
-    println!("Test7 Remove 2");
-    let mut b = BTree::<i64, i64>::new_with(5);
-    b.insert(100, 100);
-    b.insert(200, 200);
-    b.insert(300, 300);
-    b.insert(400, 400);
-    b.insert(10, 10);
-    b.insert(20, 20);
-    b.insert(30, 30);
-    b.insert(40, 40);
-    b.insert(90, 90);
-    b.insert(80, 80);
-    b.insert(70, 70);
-    b.insert(60, 60);
-
-    b.print();
-
-    let mut x = b.remove(&20);
-    println!("20: {:?}", x);
-    b.print();
-
-    x = b.remove(&400);
-    println!("400: {:?}", x);
-    b.print();
-
-    x = b.remove(&400);
-    println!("400: {:?}", x);
-    b.print();
-
-    b.insert(50, 50);
-    b.insert(51, 51);
-    b.insert(61, 61);
-    b.insert(71, 71);
-    b.insert(75, 75);
-    b.insert(78, 78);
-
-    b.print();
-
-    x = b.remove(&10);
-    println!("10: {:?}", x);
-    b.print();
-
-    x = b.remove(&300);
-    println!("300: {:?}", x);
-    b.print();
-}
-
 struct BTree<K, V>
 where
     K: Ord,
@@ -769,3 +532,243 @@ where
         }
     }
 }
+
+
+
+fn main() {
+    //test1();
+    //test2();
+    //test3();
+    //test4();
+    //test5();
+    //test6();
+    test7();
+}
+
+fn test1() {
+    println!("Start!");
+    let mut b = BTree::<i64, i64>::new();
+    b.insert(10, 10);
+    b.insert(20, 20);
+    b.print();
+
+    b.insert(30, 30);
+    b.print();
+
+    b.insert(25, 25);
+    b.print();
+
+    b.insert(15, 15);
+    b.print();
+
+    b.insert(0, 0);
+    b.print();
+
+    b.insert(35, 35);
+    b.print();
+
+    println!("20: {:?}", b.find(&20));
+    println!("100: {:?}", b.find(&100));
+    println!("0: {:?}", b.find(&0));
+    println!("1: {:?}", b.find(&1));
+
+    println!("Done");
+}
+
+fn test2() {
+    println!("Start!");
+    let mut b = BTree::<i64, i64>::new_with(3);
+    b.insert(10, 10);
+    b.insert(20, 20);
+
+    b.insert(30, 30);
+
+    b.insert(25, 25);
+
+    b.insert(15, 15);
+
+    b.insert(0, 0);
+
+    b.insert(35, 35);
+
+    b.print();
+    println!("Iterator!");
+    for x in b.iter() {
+        println!("{:?}", x)
+    }
+
+    println!("Done");
+}
+
+fn test3() {
+    println!("Start!");
+    let mut b = BTree::<i64, i64>::new_with(5);
+    b.insert(10, 10);
+    b.insert(20, 20);
+
+    b.insert(30, 30);
+
+    b.insert(25, 25);
+
+    b.insert(15, 15);
+
+    b.insert(0, 0);
+
+    b.insert(35, 35);
+
+    b.print();
+    println!("\nFrom 10");
+    let mut it = b.iter();
+    it.move_to(&10);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("\nFrom 30");
+    it = b.iter();
+    it.move_to(&30);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("\nFrom 35");
+    it = b.iter();
+    it.move_to(&35);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("\nFrom -1");
+    it = b.iter();
+    it.move_to(&-1);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("\nFrom 13");
+    it = b.iter();
+    it.move_to(&13);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("\nFrom 100");
+    it = b.iter();
+    it.move_to(&100);
+    for x in it {
+        println!("{:?}", x)
+    }
+
+    println!("Done");
+}
+
+fn test4() {
+    println!("Test4 m=5");
+    let mut b = BTree::<i64, i64>::new_with(5);
+    b.insert(10, 10);
+    b.insert(20, 20);
+    b.print();
+
+    b.insert(30, 30);
+    b.print();
+
+    b.insert(25, 25);
+    b.print();
+
+    b.insert(15, 15);
+    b.print();
+
+    b.insert(0, 0);
+    b.print();
+
+    b.insert(35, 35);
+    b.print();
+
+    b.insert(40, 40);
+    b.print();
+
+    b.insert(-20, -20);
+    b.print();
+
+    b.insert(-10, -10);
+    b.print();
+
+    println!("20: {:?}", b.find(&20));
+    println!("100: {:?}", b.find(&100));
+    println!("0: {:?}", b.find(&0));
+    println!("1: {:?}", b.find(&1));
+
+    println!("Done");
+}
+
+fn test5() {
+    println!("Test5 other features");
+    let mut b = BTree::<i64, i64>::new_with(5);
+    println!("{}", b.is_empty());
+    b.insert(10, 10);
+    println!("{}", b.is_empty());
+}
+
+fn test6() {
+    println!("Test6 Remove 1");
+    let mut b = BTree::<i64, i64>::new_with(3);
+    b.insert(10, 10);
+    b.insert(20, 20);
+    b.insert(30, 30);
+    b.insert(40, 40);
+
+    b.print();
+
+    let x = b.remove(&20);
+    println!("20: {:?}", x);
+    b.print();
+}
+
+fn test7() {
+    println!("Test7 Remove 2");
+    let mut b = BTree::<i64, i64>::new_with(5);
+    b.insert(100, 100);
+    b.insert(200, 200);
+    b.insert(300, 300);
+    b.insert(400, 400);
+    b.insert(10, 10);
+    b.insert(20, 20);
+    b.insert(30, 30);
+    b.insert(40, 40);
+    b.insert(90, 90);
+    b.insert(80, 80);
+    b.insert(70, 70);
+    b.insert(60, 60);
+
+    b.print();
+
+    let mut x = b.remove(&20);
+    println!("20: {:?}", x);
+    b.print();
+
+    x = b.remove(&400);
+    println!("400: {:?}", x);
+    b.print();
+
+    x = b.remove(&400);
+    println!("400: {:?}", x);
+    b.print();
+
+    b.insert(50, 50);
+    b.insert(51, 51);
+    b.insert(61, 61);
+    b.insert(71, 71);
+    b.insert(75, 75);
+    b.insert(78, 78);
+
+    b.print();
+
+    x = b.remove(&10);
+    println!("10: {:?}", x);
+    b.print();
+
+    x = b.remove(&300);
+    println!("300: {:?}", x);
+    b.print();
+}
+
