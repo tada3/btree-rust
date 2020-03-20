@@ -183,7 +183,7 @@ fn test6() {
     b.insert(20, 20);
     b.insert(30, 30);
     b.insert(40, 40);
-    
+
     b.print();
 
     let x = b.remove(&20);
@@ -206,7 +206,7 @@ fn test7() {
     b.insert(80, 80);
     b.insert(70, 70);
     b.insert(60, 60);
-    
+
     b.print();
 
     let mut x = b.remove(&20);
@@ -238,8 +238,6 @@ fn test7() {
     println!("300: {:?}", x);
     b.print();
 }
-
-
 
 struct BTree<K, V>
 where
@@ -447,7 +445,7 @@ where
         return false;
     }
 
-    fn remove(&mut self, x: &K, m:usize) -> (Option<V>, bool) {
+    fn remove(&mut self, x: &K, m: usize) -> (Option<V>, bool) {
         let pos = self.find_pos(&x);
         if self.is_leaf() {
             // 1. Leaf
@@ -457,21 +455,16 @@ where
             }
             self.ks.remove(pos.0);
             let removed = self.vs.remove(pos.0);
-            return (Some(removed), self.ks.len() == 0); 
+            return (Some(removed), self.ks.len() == 0);
         }
 
         // 2. Non-leaf
         if pos.1 {
             // 2.1. Remove from this node
             let rm = self.ns[pos.0].remove_right_most(m);
-            
-            // let removed = self.vs[pos.0];
+
             self.ks.remove(pos.0);
             let v = self.vs.remove(pos.0);
-
-
-            //self.ks[pos.0] = rm.0;
-            //self.vs[pos.0] = rm.1;
 
             self.ks.insert(pos.0, rm.0);
             self.vs.insert(pos.0, rm.1);
@@ -479,9 +472,9 @@ where
             if rm.2 {
                 self.borrow_or_merge_from_right(pos.0, m);
             }
-            return (Some(v), self.ks.len() < m/2);
+            return (Some(v), self.ks.len() < m / 2);
         }
-        
+
         // 2.2. Remove from child
         let result = self.ns[pos.0].remove(x, m);
         if result.1 {
@@ -490,7 +483,7 @@ where
             } else {
                 self.borrow_or_merge_from_right(pos.0, m);
             }
-            return (result.0, self.ks.len() < m/2);
+            return (result.0, self.ks.len() < m / 2);
         }
         return result;
     }
@@ -560,14 +553,14 @@ where
         if result.2 {
             self.borrow_or_merge_from_left(last, m);
         }
-        return (result.0, result.1, self.ks.len() < m/2 )
+        return (result.0, result.1, self.ks.len() < m / 2);
     }
 
     fn can_borrow(&self, m: usize) -> bool {
         if self.is_leaf() {
             return self.ks.len() > 1;
         }
-        return self.ks.len() > m/2;
+        return self.ks.len() > m / 2;
     }
 
     fn borrow_left_most(&mut self) -> (K, V, Option<Node<K, V>>) {
@@ -592,16 +585,8 @@ where
 
     // ns[pos] <- ns[pos+1] or merge ns[pos] and ns[pos+1
     fn borrow_or_merge_from_right(&mut self, pos: usize, m: usize) {
-        //let binbo = &mut self.ns[pos];
-        //let tonari = & self.ns[pos + 1];
-        
-       // if tonari.can_borrow(m) {
-           if self.ns[pos+1].can_borrow(m) {
+        if self.ns[pos + 1].can_borrow(m) {
             // 1. borrow
-            //let pivot = (self.ks[pos], self.vs[pos]);
-            //self.ns[pos].ks.push(pivot.0);
-            //self.ns[pos].vs.push(pivot.1);
-
             // remove(pos) and insert(ns) is inefficient, but
             // I need to do that. Otherwise, I have to move ks[pos]
             // and vs[pos] but Rust does not allow that.
@@ -609,14 +594,10 @@ where
             self.ns[pos].ks.push(pivot.0);
             self.ns[pos].vs.push(pivot.1);
 
-            let borrowed = self.ns[pos+1].borrow_left_most();
-
-            // self.ks[pos] = borrowed.0;
-            // self.vs[pos] = borrowed.1;
+            let borrowed = self.ns[pos + 1].borrow_left_most();
 
             self.ks.insert(pos, borrowed.0);
             self.vs.insert(pos, borrowed.1);
-
 
             if let Some(n) = borrowed.2 {
                 self.ns[pos].ns.push(n);
@@ -626,11 +607,8 @@ where
             let pivot = (self.ks.remove(pos), self.vs.remove(pos));
             self.ns[pos].ks.push(pivot.0);
             self.ns[pos].vs.push(pivot.1);
-        
-            //self.ns[pos].ks.append(&mut self.ns[pos+1].ks);
-            //self.ns[pos].vs.append(&mut self.ns[pos+1].vs);
 
-            let mut removed = self.ns.remove(pos+1);
+            let mut removed = self.ns.remove(pos + 1);
             self.ns[pos].ks.append(&mut removed.ks);
             self.ns[pos].vs.append(&mut removed.vs);
 
@@ -642,34 +620,31 @@ where
 
     // ns[pos-1] -> ns[pos] or merge ns[pos-1] and ns[pos]
     fn borrow_or_merge_from_left(&mut self, pos: usize, m: usize) {
-        //let binbo = self.ns[pos];
-        //let tonari = self.ns[pos - 1];
-        
-        if self.ns[pos-1].can_borrow(m) {
+        if self.ns[pos - 1].can_borrow(m) {
             // 1. borrow
-            let pivot = (self.ks.remove(pos - 1), self.vs.remove(pos-1));
+            let pivot = (self.ks.remove(pos - 1), self.vs.remove(pos - 1));
             self.ns[pos].ks.insert(0, pivot.0);
             self.ns[pos].vs.insert(0, pivot.1);
 
-            let borrowed = self.ns[pos-1].borrow_right_most();
-            self.ks.insert(pos-1, borrowed.0);
-            self.vs.insert(pos-1, borrowed.1);
+            let borrowed = self.ns[pos - 1].borrow_right_most();
+            self.ks.insert(pos - 1, borrowed.0);
+            self.vs.insert(pos - 1, borrowed.1);
 
             if let Some(n) = borrowed.2 {
                 self.ns[pos].ns.insert(0, n);
             }
         } else {
             // 2. merge
-            let pivot = (self.ks.remove(pos - 1), self.vs.remove(pos-1));
-            self.ns[pos-1].ks.push(pivot.0);
-            self.ns[pos-1].vs.push(pivot.1);
+            let pivot = (self.ks.remove(pos - 1), self.vs.remove(pos - 1));
+            self.ns[pos - 1].ks.push(pivot.0);
+            self.ns[pos - 1].vs.push(pivot.1);
 
             let mut removed = self.ns.remove(pos);
-            self.ns[pos-1].ks.append(&mut removed.ks);
-            self.ns[pos-1].vs.append(&mut removed.vs);
+            self.ns[pos - 1].ks.append(&mut removed.ks);
+            self.ns[pos - 1].vs.append(&mut removed.vs);
 
-            if !self.ns[pos-1].is_leaf() {
-                self.ns[pos-1].ns.append(&mut removed.ns);
+            if !self.ns[pos - 1].is_leaf() {
+                self.ns[pos - 1].ns.append(&mut removed.ns);
             }
         }
     }
