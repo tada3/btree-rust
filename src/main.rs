@@ -2,6 +2,8 @@ use std::fmt;
 use std::iter::IntoIterator;
 use std::iter::Iterator;
 
+use std::time::Instant;
+
 struct BTree<K, V>
 where
     K: Ord,
@@ -26,7 +28,7 @@ where
     ns: Vec<Node<K, V>>,
 }
 
-struct NodeIter<'a, K, V>
+struct NodeIter<'a, K: 'a, V: 'a>
 where
     K: Ord,
     K: fmt::Display,
@@ -36,7 +38,7 @@ where
     go_child: bool,
 }
 
-struct BTreeIterator<'a, K, V>
+struct BTreeIterator<'a, K: 'a, V: 'a>
 where
     K: Ord,
     K: fmt::Display,
@@ -168,6 +170,8 @@ where
     K: Ord,
     K: fmt::Display,
 {
+    const CHECK_RIGHT_MOST_THRESHOLD : usize = 7;
+    const USE_LINEAR_THRESHOLD : usize = 7;
     fn new(m: usize) -> Node<K, V> {
         Node::<K, V> {
             ks: Vec::<K>::with_capacity(m - 1),
@@ -289,15 +293,54 @@ where
         return (midE, midV, right);
     }
 
+    // For small m (around 11), linear search is better than 
+    // binary search. But the plain linear search is too inefficient.
+    // I check the value of the right end and mid. This makes
+    // the performance much better (40% - 50% faster).
     fn find_pos(&self, x: &K) -> (usize, bool) {
-        for i in 0..self.ks.len() {
-            if x < &self.ks[i] {
-                return (i, false);
-            } else if x == &self.ks[i] {
+        let len = self.ks.len();
+
+        if len > Self::CHECK_RIGHT_MOST_THRESHOLD && self.ks[len - 1] < *x {
+            return (len, false);
+        }
+
+        if len < Self::USE_LINEAR_THRESHOLD {
+            return self.linear_search(x, 0, len);
+        }
+
+        let mid = self.ks.len() / 2;
+        if self.ks[mid] < *x {
+            return self.linear_search(x, mid + 1, len);
+        } 
+        if self.ks[mid] == *x {
+            return (mid, true);
+        }
+        return self.linear_search_reverse(x, 0, mid);
+    }
+
+    fn linear_search(&self, x: &K, start: usize, end: usize) -> (usize, bool) {
+        for i in start..end {
+            if self.ks[i] < *x {
+                continue;
+            }
+            if self.ks[i] == *x {
+                return (i, true);
+            }
+            return (i, false);
+        }
+        return (end, false);
+    }
+
+    fn linear_search_reverse(&self, x: &K, start: usize, end: usize) -> (usize, bool) {
+        for i in (start..end).rev() {
+            if self.ks[i] < *x {
+                return (i + 1, false);
+            }
+            if self.ks[i] == *x {
                 return (i, true);
             }
         }
-        return (self.ks.len(), false);
+        return (0, false);
     }
 
     fn remove_right_most(&mut self, m: usize) -> (K, V, bool) {
@@ -311,8 +354,9 @@ where
         // 2. Node (remove from child)
         let last = self.ns.len() - 1;
         // self.ns.last() gets & reference. So it does not work.
-        let child = &mut self.ns[last];
-        let result = child.remove_right_most(m);
+        //let child = &mut self.ns[last];
+        //let result = child.remove_right_most(m);
+        let result = self.ns[last].remove_right_most(m);
         if result.2 {
             self.borrow_or_merge_from_left(last, m);
         }
@@ -533,18 +577,24 @@ where
     }
 }
 
-
+// find_pos: 4888 us
+// find_pos3: 2771 us
+// find_pos3 (9): 2894 us
+// find_pos3 (5): 2863 us
 
 fn main() {
     //test1();
     //test2();
     //test3();
-    //test4();
+    test4();
     //test5();
     //test6();
-    test7();
+    //test7();
+    //test8();
+    //test9();
 }
 
+#[allow(dead_code)]
 fn test1() {
     println!("Start!");
     let mut b = BTree::<i64, i64>::new();
@@ -575,6 +625,7 @@ fn test1() {
     println!("Done");
 }
 
+#[allow(dead_code)]
 fn test2() {
     println!("Start!");
     let mut b = BTree::<i64, i64>::new_with(3);
@@ -600,6 +651,7 @@ fn test2() {
     println!("Done");
 }
 
+#[allow(dead_code)]
 fn test3() {
     println!("Start!");
     let mut b = BTree::<i64, i64>::new_with(5);
@@ -662,6 +714,7 @@ fn test3() {
     println!("Done");
 }
 
+#[allow(dead_code)]
 fn test4() {
     println!("Test4 m=5");
     let mut b = BTree::<i64, i64>::new_with(5);
@@ -701,6 +754,7 @@ fn test4() {
     println!("Done");
 }
 
+#[allow(dead_code)]
 fn test5() {
     println!("Test5 other features");
     let mut b = BTree::<i64, i64>::new_with(5);
@@ -709,6 +763,7 @@ fn test5() {
     println!("{}", b.is_empty());
 }
 
+#[allow(dead_code)]
 fn test6() {
     println!("Test6 Remove 1");
     let mut b = BTree::<i64, i64>::new_with(3);
@@ -724,6 +779,7 @@ fn test6() {
     b.print();
 }
 
+#[allow(dead_code)]
 fn test7() {
     println!("Test7 Remove 2");
     let mut b = BTree::<i64, i64>::new_with(5);
@@ -772,3 +828,32 @@ fn test7() {
     b.print();
 }
 
+#[allow(dead_code)]
+fn test8() {
+    println!("Test8 find_pos");
+    let mut n = Node::<i64, i64>::new(11);
+    for i in (0..12) {
+        n.insert(i, i, 11);
+    }
+    println!("{}", n);
+
+    let start = Instant::now();
+    for i in 0..1000 {
+        let mut result = n.find_pos(&-100);
+        //println!("{}, {}", result.0, result.1);
+        result = n.find_pos(&0);
+        //println!("{}, {}", result.0, result.1);
+        result = n.find_pos(&4);
+        //println!("{}, {}", result.0, result.1);
+        result = n.find_pos(&7);
+        //println!("{}, {}", result.0, result.1);
+        result = n.find_pos(&11);
+        //println!("{}, {}", result.0, result.1);
+        result = n.find_pos(&100);
+        if result.1 {
+            println!("{}, {}", result.0, result.1);
+        }
+    }
+    let end = start.elapsed();
+    println!("{} us", end.as_micros());
+}
